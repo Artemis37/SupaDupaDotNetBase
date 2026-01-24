@@ -17,7 +17,5 @@ namespace Vehicle.Infrastructure.Repositories
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Username == username);
         }
-
-        // GetByIdAsync is inherited from MasterBaseRepository<PersonMaster>
     }
 }

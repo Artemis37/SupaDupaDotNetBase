@@ -18,7 +18,6 @@ namespace CoreAPI.Middleware
             HttpContext context,
             PersonContextResolver personContextResolver)
         {
-            // Check if the endpoint has SkipPersonIdCheck attribute
             var endpoint = context.GetEndpoint();
             if (endpoint != null)
             {
@@ -30,7 +29,6 @@ namespace CoreAPI.Middleware
                 }
             }
 
-            // Read personId from header (case-insensitive)
             if (!context.Request.Headers.TryGetValue(PersonIdHeaderName, out var personIdHeaderValue))
             {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
@@ -39,7 +37,6 @@ namespace CoreAPI.Middleware
                 return;
             }
 
-            // Parse personId
             if (!int.TryParse(personIdHeaderValue.ToString(), out var personId))
             {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
@@ -48,7 +45,6 @@ namespace CoreAPI.Middleware
                 return;
             }
 
-            // Resolve person context
             var resolutionResult = await personContextResolver.ResolvePersonContextAsync(personId);
 
             if (!resolutionResult.IsSuccess)

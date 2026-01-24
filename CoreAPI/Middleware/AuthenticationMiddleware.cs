@@ -19,7 +19,6 @@ namespace CoreAPI.Middleware
             HttpContext context,
             IAuthService authService)
         {
-            // Check if the endpoint has SkipAuthentication attribute
             var endpoint = context.GetEndpoint();
             if (endpoint != null)
             {
@@ -31,7 +30,6 @@ namespace CoreAPI.Middleware
                 }
             }
 
-            // Read Authorization header
             if (!context.Request.Headers.TryGetValue(AuthorizationHeaderName, out var authHeaderValue))
             {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
@@ -42,7 +40,6 @@ namespace CoreAPI.Middleware
 
             var authHeader = authHeaderValue.ToString();
             
-            // Check for Bearer prefix
             if (!authHeader.StartsWith(BearerPrefix, StringComparison.OrdinalIgnoreCase))
             {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
@@ -51,7 +48,6 @@ namespace CoreAPI.Middleware
                 return;
             }
 
-            // Extract token
             var token = authHeader.Substring(BearerPrefix.Length).Trim();
             
             if (string.IsNullOrEmpty(token))
@@ -62,7 +58,6 @@ namespace CoreAPI.Middleware
                 return;
             }
 
-            // Validate token (checks signature and expiration)
             if (!authService.ValidateToken(token, out int userId))
             {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
@@ -71,7 +66,6 @@ namespace CoreAPI.Middleware
                 return;
             }
 
-            // Token is valid, store userId in context for potential future use
             context.Items["UserId"] = userId;
 
             await _next(context);

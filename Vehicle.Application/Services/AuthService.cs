@@ -41,7 +41,6 @@ namespace Vehicle.Application.Services
                 return null;
             }
 
-            // Generate JWT token
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(_jwtSettings.SecretKey);
             
@@ -82,7 +81,7 @@ namespace Vehicle.Application.Services
                     ValidateAudience = true,
                     ValidAudience = _jwtSettings.Audience,
                     ValidateLifetime = true,
-                    ClockSkew = TimeSpan.Zero // No tolerance for expired tokens
+                    ClockSkew = TimeSpan.Zero
                 };
 
                 var principal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
@@ -93,7 +92,6 @@ namespace Vehicle.Application.Services
                     return false;
                 }
 
-                // Extract user ID from subject claim
                 var subClaim = principal.FindFirst(JwtRegisteredClaimNames.Sub);
                 if (subClaim == null || !int.TryParse(subClaim.Value, out userId))
                 {
