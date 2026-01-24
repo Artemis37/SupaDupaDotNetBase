@@ -1,7 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using System.Transactions;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Shared.Application.Context;
@@ -109,14 +108,13 @@ namespace Vehicle.Application.Services
             //    or "PersonCreationFailed" (abort) events to message broker
             // 5. Async Creation: Return success immediately after Master DB write, create Sharding DB 
             //    record asynchronously via message queue (eventual consistency trade-off)
-            // Current implementation: TransactionScope with 2PC for ACID guarantees across databases
-
-            // Use TransactionScope for distributed transaction (2-phase commit)
-            // This only work reliablely because both database are sql server, so TransactionScope automatically escalate to MSDTC
-            using (var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
+            
+            PersonMaster? personMaster = null;
+            
+            try
             {
                 // Create PersonMaster in Master DB
-                var personMaster = new PersonMaster
+                personMaster = new PersonMaster
                 {
                     Username = username,
                     Password = hashedPassword,
@@ -141,8 +139,20 @@ namespace Vehicle.Application.Services
                 };
 
                 await _personRepository.AddAsync(person);
-
-                scope.Complete();
+            }
+            catch (Exception)
+            {
+                // Compensating transaction: If Person creation fails, delete PersonMaster
+                if (personMaster != null && personMaster.Id > 0)
+                {
+                    try
+                    {
+                        await _personMasterRepository.DeleteAsync(personMaster);
+                    }
+                    catch
+                    {}
+                }
+                throw;
             }
 
             var user = await _personMasterRepository.GetByUsernameAsync(username);

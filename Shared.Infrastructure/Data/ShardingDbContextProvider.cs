@@ -31,15 +31,13 @@ namespace Shared.Infrastructure.Data
             var optionsBuilder = new DbContextOptionsBuilder<TDbContext>();
             optionsBuilder.UseSqlServer(connectionString);
             
-            // Check if TDbContext is ShardingDbContext and requires IPersonContextProvider
             if (typeof(TDbContext).Name == "ShardingDbContext")
             {
-                // Use reflection to create with both parameters
                 var constructor = typeof(TDbContext).GetConstructor(
-                    new[] { typeof(DbContextOptions<TDbContext>), typeof(IPersonContextProvider) });
+                    new[] { typeof(DbContextOptions<TDbContext>), typeof(PersonContext) });
                 if (constructor != null)
                 {
-                    return (TDbContext)constructor.Invoke(new object[] { optionsBuilder.Options, _personContextProvider });
+                    return (TDbContext)constructor.Invoke(new object[] { optionsBuilder.Options, personContext });
                 }
             }
             
