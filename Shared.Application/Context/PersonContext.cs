@@ -2,6 +2,7 @@ using System.Threading;
 
 namespace Shared.Application.Context
 {
+    // TODO: Make Person context immutable
     public class PersonContext
     {
         private static readonly AsyncLocal<int?> _personId = new AsyncLocal<int?>();

@@ -15,6 +15,9 @@ builder.Services.AddApplicationServices(builder.Configuration);
 
 var app = builder.Build();
 
+// Initialize databases (migrate Master + all Shards)
+await app.InitializeDatabasesAsync();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

@@ -38,7 +38,12 @@ namespace Vehicle.Infrastructure.Data
                     var parameter = Expression.Parameter(clrType, "e");
                     var property = Expression.Property(parameter, "PersonId");
                     var personIdExpression = Expression.Property(Expression.Constant(_personContext), nameof(PersonContext.PersonId));
-                    var filter = Expression.Equal(property, personIdExpression);
+                    
+                    Expression nullableProperty = property.Type == typeof(int) 
+                        ? Expression.Convert(property, typeof(int?)) 
+                        : (Expression)property;
+                    
+                    var filter = Expression.Equal(nullableProperty, personIdExpression);
                     var lambda = Expression.Lambda(filter, parameter);
                     modelBuilder.Entity(clrType).HasQueryFilter(lambda);
                 }

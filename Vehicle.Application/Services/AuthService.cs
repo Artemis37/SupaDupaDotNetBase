@@ -77,28 +77,23 @@ namespace Vehicle.Application.Services
 
         public async Task<string?> RegisterAsync(string username, string password)
         {
-            // Check if username already exists
             var existingUser = await _personMasterRepository.GetByUsernameAsync(username);
             if (existingUser != null)
             {
                 return null;
             }
 
-            // Hash the password
             var hashedPassword = BCrypt.Net.BCrypt.HashPassword(password);
 
-            // Determine shard assignment: prioritize HotShard if configured, otherwise random
             int shardId;
             if (_shardingSettings.HotShard.HasValue && 
                 _shardingSettings.HotShard.Value >= 1 && 
                 _shardingSettings.HotShard.Value <= _shardingSettings.TotalShards)
             {
-                // Use HotShard for prioritized shard assignment
                 shardId = _shardingSettings.HotShard.Value;
             }
             else
             {
-                // Randomly assign shard for load balancing
                 shardId = Random.Shared.Next(1, _shardingSettings.TotalShards + 1);
             }
 
@@ -117,6 +112,7 @@ namespace Vehicle.Application.Services
             // Current implementation: TransactionScope with 2PC for ACID guarantees across databases
 
             // Use TransactionScope for distributed transaction (2-phase commit)
+            // This only work reliablely because both database are sql server, so TransactionScope automatically escalate to MSDTC
             using (var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
             {
                 // Create PersonMaster in Master DB
@@ -131,13 +127,14 @@ namespace Vehicle.Application.Services
                 personMaster = await _personMasterRepository.AddAsync(personMaster);
 
                 // Set PersonContext to route to the correct shard
+                // This only work because of this is the first time _personRepository.AddAsync is called within the request
+                // So new ShardingDbContext is created, might need a better solution to switch sharding in run time
                 _personContext.PersonId = personMaster.Id;
                 _personContext.ShardId = personMaster.ShardId;
 
-                // Create Person in Sharding DB
                 var person = new Person
                 {
-                    Name = username, // Using username as default name
+                    Name = username,
                     CreatedBy = personMaster.Id,
                     CreatedAt = DateTime.UtcNow,
                     IsDeleted = false
@@ -145,11 +142,9 @@ namespace Vehicle.Application.Services
 
                 await _personRepository.AddAsync(person);
 
-                // Complete the transaction (2-phase commit)
                 scope.Complete();
             }
 
-            // Generate JWT token for the newly registered user
             var user = await _personMasterRepository.GetByUsernameAsync(username);
             if (user == null)
             {
