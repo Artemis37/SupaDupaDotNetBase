@@ -1,24 +1,36 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Transactions;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Shared.Infrastructure.Context;
 using Vehicle.Application.Models;
 using Vehicle.Domain.Interfaces.Repositories;
 using Vehicle.Domain.Interfaces.Services;
+using Vehicle.Domain.Models;
 
 namespace Vehicle.Application.Services
 {
     public class AuthService : IAuthService
     {
         private readonly IPersonMasterRepository _personMasterRepository;
+        private readonly IPersonRepository _personRepository;
+        private readonly PersonContext _personContext;
+        private readonly ShardingSettings _shardingSettings;
         private readonly JwtSettings _jwtSettings;
 
         public AuthService(
             IPersonMasterRepository personMasterRepository,
+            IPersonRepository personRepository,
+            PersonContext personContext,
+            IOptions<ShardingSettings> shardingSettings,
             IOptions<JwtSettings> jwtSettings)
         {
             _personMasterRepository = personMasterRepository;
+            _personRepository = personRepository;
+            _personContext = personContext;
+            _shardingSettings = shardingSettings.Value;
             _jwtSettings = jwtSettings.Value;
             
             if (string.IsNullOrEmpty(_jwtSettings.SecretKey))
@@ -61,6 +73,90 @@ namespace Vehicle.Application.Services
 
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
+        }
+
+        public async Task<string?> RegisterAsync(string username, string password)
+        {
+            // Check if username already exists
+            var existingUser = await _personMasterRepository.GetByUsernameAsync(username);
+            if (existingUser != null)
+            {
+                return null;
+            }
+
+            // Hash the password
+            var hashedPassword = BCrypt.Net.BCrypt.HashPassword(password);
+
+            // Determine shard assignment: prioritize HotShard if configured, otherwise random
+            int shardId;
+            if (_shardingSettings.HotShard.HasValue && 
+                _shardingSettings.HotShard.Value >= 1 && 
+                _shardingSettings.HotShard.Value <= _shardingSettings.TotalShards)
+            {
+                // Use HotShard for prioritized shard assignment
+                shardId = _shardingSettings.HotShard.Value;
+            }
+            else
+            {
+                // Randomly assign shard for load balancing
+                shardId = Random.Shared.Next(1, _shardingSettings.TotalShards + 1);
+            }
+
+            // TODO: Replace direct database call with message broker for eventual consistency
+            // Potential optimizations:
+            // 1. SAGA Pattern: Implement compensating transactions to rollback Master DB 
+            //    if Sharding DB creation fails (e.g., delete PersonMaster if Person creation fails)
+            // 2. Outbox Pattern with Idempotency: Store "PersonCreated" event in Master DB outbox table,
+            //    process via background worker to create Person in Sharding DB, ensuring at-least-once
+            //    delivery with idempotent handlers to prevent duplicate Person records
+            // 3. Event Sourcing: Store registration as immutable event, rebuild state by replaying events
+            // 4. Two-Phase Message: Publish "PersonCreating" (prepare), then "PersonCreated" (commit) 
+            //    or "PersonCreationFailed" (abort) events to message broker
+            // 5. Async Creation: Return success immediately after Master DB write, create Sharding DB 
+            //    record asynchronously via message queue (eventual consistency trade-off)
+            // Current implementation: TransactionScope with 2PC for ACID guarantees across databases
+
+            // Use TransactionScope for distributed transaction (2-phase commit)
+            using (var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
+            {
+                // Create PersonMaster in Master DB
+                var personMaster = new PersonMaster
+                {
+                    Username = username,
+                    Password = hashedPassword,
+                    ShardId = shardId,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                personMaster = await _personMasterRepository.AddAsync(personMaster);
+
+                // Set PersonContext to route to the correct shard
+                _personContext.PersonId = personMaster.Id;
+                _personContext.ShardId = personMaster.ShardId;
+
+                // Create Person in Sharding DB
+                var person = new Person
+                {
+                    Name = username, // Using username as default name
+                    CreatedBy = personMaster.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    IsDeleted = false
+                };
+
+                await _personRepository.AddAsync(person);
+
+                // Complete the transaction (2-phase commit)
+                scope.Complete();
+            }
+
+            // Generate JWT token for the newly registered user
+            var user = await _personMasterRepository.GetByUsernameAsync(username);
+            if (user == null)
+            {
+                return null;
+            }
+
+            return GenerateJwtToken(user.Id);
         }
 
         public bool ValidateToken(string token, out int userId)
@@ -108,6 +204,30 @@ namespace Vehicle.Application.Services
             {
                 return false;
             }
+        }
+
+        private string GenerateJwtToken(int userId)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.UTF8.GetBytes(_jwtSettings.SecretKey);
+            
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new[]
+                {
+                    new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
+                    new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
+                }),
+                Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes),
+                Issuer = _jwtSettings.Issuer,
+                Audience = _jwtSettings.Audience,
+                SigningCredentials = new SigningCredentials(
+                    new SymmetricSecurityKey(key),
+                    SecurityAlgorithms.HmacSha256Signature)
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
         }
     }
 }

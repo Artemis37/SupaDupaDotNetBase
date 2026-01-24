@@ -11,6 +11,14 @@ namespace Vehicle.Domain.Interfaces.Services
         Task<string?> AuthenticateAsync(string username, string password);
 
         /// <summary>
+        /// Registers a new user with username and password
+        /// </summary>
+        /// <param name="username">Username for the new account</param>
+        /// <param name="password">Plain text password</param>
+        /// <returns>JWT token if registration successful, null if username already exists</returns>
+        Task<string?> RegisterAsync(string username, string password);
+
+        /// <summary>
         /// Validates JWT token and extracts user ID
         /// </summary>
         /// <param name="token">JWT token</param>

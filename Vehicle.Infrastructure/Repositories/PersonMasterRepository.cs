@@ -17,5 +17,12 @@ namespace Vehicle.Infrastructure.Repositories
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Username == username);
         }
+
+        public async Task<PersonMaster> AddAsync(PersonMaster person)
+        {
+            await _context.PersonMasters.AddAsync(person);
+            await _context.SaveChangesAsync();
+            return person;
+        }
     }
 }

@@ -5,6 +5,8 @@ namespace Vehicle.Application.Constants
         public const string AUTH_INVALID_CREDENTIALS = "AUTH_INVALID_CREDENTIALS";
         public const string AUTH_TOKEN_EXPIRED = "AUTH_TOKEN_EXPIRED";
         public const string AUTH_TOKEN_INVALID = "AUTH_TOKEN_INVALID";
+        public const string AUTH_USERNAME_TAKEN = "AUTH_USERNAME_TAKEN";
+        public const string AUTH_REGISTRATION_FAILED = "AUTH_REGISTRATION_FAILED";
         public const string UNAUTHORIZED_ACCESS = "UNAUTHORIZED_ACCESS";
 
         public const string VALIDATION_FAILED = "VALIDATION_FAILED";

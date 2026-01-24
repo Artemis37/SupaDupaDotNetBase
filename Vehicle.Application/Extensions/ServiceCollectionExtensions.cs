@@ -11,6 +11,7 @@ namespace Vehicle.Application.Extensions
         public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
         {
             services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
+            services.Configure<ShardingSettings>(configuration.GetSection("Sharding"));
             services.AddScoped<IAuthService, AuthService>();
 
             return services;

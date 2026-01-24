@@ -63,5 +63,48 @@ namespace CoreAPI.Controllers
 
             return Ok(successResponse);
         }
+
+        [HttpPost("register")]
+        [ProducesResponseType(typeof(ApiResponse<RegisterResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var validationErrors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray()
+                    );
+
+                var validationResponse = ApiResponse<object>.ErrorResponse(
+                    "Validation failed",
+                    ErrorCodes.VALIDATION_FAILED,
+                    validationErrors
+                );
+
+                return BadRequest(validationResponse);
+            }
+
+            var token = await _authService.RegisterAsync(request.Username, request.Password);
+
+            if (token == null)
+            {
+                var errorResponse = ApiResponse<object>.ErrorResponse(
+                    "Username is already taken",
+                    ErrorCodes.AUTH_USERNAME_TAKEN
+                );
+
+                return BadRequest(errorResponse);
+            }
+
+            var successResponse = ApiResponse<RegisterResponse>.SuccessResponse(
+                new RegisterResponse { Token = token },
+                "Registration successful"
+            );
+
+            return Ok(successResponse);
+        }
     }
 }

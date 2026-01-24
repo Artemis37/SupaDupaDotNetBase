@@ -40,7 +40,6 @@ namespace CoreAPI.Extensions
                 });
             });
 
-            // PersonContext and IPersonContextProvider are now registered in Shared.Infrastructure
             services.AddScoped<PersonContextResolver>();
 
             return services;
