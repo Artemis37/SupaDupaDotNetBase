@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
+using Shared.Application.Interfaces;
 
-namespace Vehicle.Infrastructure.Data
+namespace Shared.Infrastructure.Data
 {
     public class DbContextFactory : IDbContextFactory
     {

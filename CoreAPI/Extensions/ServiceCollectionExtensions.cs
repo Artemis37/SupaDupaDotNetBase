@@ -1,6 +1,5 @@
 using CoreAPI.Middleware;
 using Microsoft.OpenApi.Models;
-using Vehicle.Infrastructure.Context;
 
 namespace CoreAPI.Extensions
 {
@@ -41,8 +40,7 @@ namespace CoreAPI.Extensions
                 });
             });
 
-            services.AddScoped<PersonContext>();
-            services.AddScoped<IPersonContextProvider, PersonContextProvider>();
+            // PersonContext and IPersonContextProvider are now registered in Shared.Infrastructure
             services.AddScoped<PersonContextResolver>();
 
             return services;

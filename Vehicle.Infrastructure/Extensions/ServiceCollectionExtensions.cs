@@ -1,8 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Shared.Application.Interfaces;
+using Shared.Infrastructure.Extensions;
 using Vehicle.Domain.Interfaces.Repositories;
-using Vehicle.Infrastructure.Context;
 using Vehicle.Infrastructure.Data;
 using Vehicle.Infrastructure.Repositories;
 
@@ -14,7 +15,10 @@ namespace Vehicle.Infrastructure.Extensions
             this IServiceCollection services,
             IConfiguration configuration)
         {
-            // Register MasterDbContext
+            services.AddSharedInfrastructure();
+
+            services.AddScoped<IShardingDbContextProvider<ShardingDbContext>, Shared.Infrastructure.Data.ShardingDbContextProvider<ShardingDbContext>>();
+
             var masterConnectionString = configuration.GetConnectionString("Master");
             if (string.IsNullOrEmpty(masterConnectionString))
             {
@@ -31,15 +35,6 @@ namespace Vehicle.Infrastructure.Extensions
         {
             services.AddScoped<IPersonRepository, PersonRepository>();
             services.AddScoped<IVehicleRepository, VehicleRepository>();
-
-            services.AddScoped<IDbContextFactory, DbContextFactory>();
-            services.AddScoped<IShardingDbContextProvider, ShardingDbContextProvider>();
-
-            services.AddScoped<ShardingDbContext>(sp =>
-            {
-                var provider = sp.GetRequiredService<IShardingDbContextProvider>();
-                return provider.GetDbContext();
-            });
 
             return services;
         }

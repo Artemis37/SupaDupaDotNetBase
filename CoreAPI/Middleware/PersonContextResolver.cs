@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Shared.Infrastructure.Context;
 using Vehicle.Domain.Models;
-using Vehicle.Infrastructure.Context;
 using Vehicle.Infrastructure.Data;
 
 namespace CoreAPI.Middleware

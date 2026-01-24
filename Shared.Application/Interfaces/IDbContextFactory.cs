@@ -1,4 +1,4 @@
-namespace Vehicle.Infrastructure.Data
+namespace Shared.Application.Interfaces
 {
     public interface IDbContextFactory
     {

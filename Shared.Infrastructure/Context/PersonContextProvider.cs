@@ -1,4 +1,4 @@
-namespace Vehicle.Infrastructure.Context
+namespace Shared.Infrastructure.Context
 {
     public class PersonContextProvider : IPersonContextProvider
     {

@@ -1,49 +1,51 @@
 using Microsoft.EntityFrameworkCore;
+using Shared.Application.Interfaces;
 using Vehicle.Infrastructure.Data;
 
 namespace Vehicle.Infrastructure.Repositories
 {
     public class BaseRepository<T> where T : class
     {
-        protected readonly ShardingDbContext _context;
+        protected readonly IUnitOfWork _unitOfWork;
+        protected ShardingDbContext Context => _unitOfWork.GetDbContext<ShardingDbContext>();
 
-        public BaseRepository(ShardingDbContext context)
+        public BaseRepository(IUnitOfWork unitOfWork)
         {
-            _context = context;
+            _unitOfWork = unitOfWork;
         }
 
         public virtual async Task<T?> GetByIdAsync(int id)
         {
-            return await _context.Set<T>().FindAsync(id);
+            return await Context.Set<T>().FindAsync(id);
         }
 
         public virtual async Task<IEnumerable<T>> GetAllAsync()
         {
-            return await _context.Set<T>().ToListAsync();
+            return await Context.Set<T>().ToListAsync();
         }
 
         public virtual async Task<T> AddAsync(T entity)
         {
-            await _context.Set<T>().AddAsync(entity);
-            await _context.SaveChangesAsync();
+            await Context.Set<T>().AddAsync(entity);
+            await _unitOfWork.SaveChangesAsync();
             return entity;
         }
 
         public virtual async Task UpdateAsync(T entity)
         {
-            _context.Set<T>().Update(entity);
-            await _context.SaveChangesAsync();
+            Context.Set<T>().Update(entity);
+            await _unitOfWork.SaveChangesAsync();
         }
 
         public virtual async Task DeleteAsync(T entity)
         {
-            _context.Set<T>().Remove(entity);
-            await _context.SaveChangesAsync();
+            Context.Set<T>().Remove(entity);
+            await _unitOfWork.SaveChangesAsync();
         }
 
         public virtual async Task<bool> ExistsAsync(int id)
         {
-            var entity = await _context.Set<T>().FindAsync(id);
+            var entity = await Context.Set<T>().FindAsync(id);
             return entity != null;
         }
     }
