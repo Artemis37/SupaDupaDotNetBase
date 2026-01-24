@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
 namespace Vehicle.Domain.Interfaces.Repositories
 {
-    public interface IVehicleRepository
+    public interface IVehicleRepository : IBaseRepository<Domain.Models.Vehicle>
     {
     }
 }
