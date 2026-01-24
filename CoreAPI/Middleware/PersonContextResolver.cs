@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Shared.Infrastructure.Context;
+using Shared.Application.Context;
 using Vehicle.Domain.Models;
 using Vehicle.Infrastructure.Data;
 

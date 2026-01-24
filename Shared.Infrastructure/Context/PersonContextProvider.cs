@@ -1,17 +1,19 @@
+using Shared.Application.Context;
+
 namespace Shared.Infrastructure.Context
 {
     public class PersonContextProvider : IPersonContextProvider
     {
-        private readonly PersonContext _context;
+        private readonly PersonContext _personContext;
 
-        public PersonContextProvider()
+        public PersonContextProvider(PersonContext personContext)
         {
-            _context = new PersonContext();
+            _personContext = personContext;
         }
 
         public PersonContext GetContext()
         {
-            return _context;
+            return _personContext;
         }
     }
 }

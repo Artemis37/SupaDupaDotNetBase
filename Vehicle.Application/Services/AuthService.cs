@@ -4,7 +4,7 @@ using System.Text;
 using System.Transactions;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Shared.Infrastructure.Context;
+using Shared.Application.Context;
 using Vehicle.Application.Models;
 using Vehicle.Domain.Interfaces.Repositories;
 using Vehicle.Domain.Interfaces.Services;

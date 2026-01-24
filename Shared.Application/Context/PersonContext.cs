@@ -1,6 +1,6 @@
 using System.Threading;
 
-namespace Shared.Infrastructure.Context
+namespace Shared.Application.Context
 {
     public class PersonContext
     {

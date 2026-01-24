@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Shared.Application.Interfaces;
-using Shared.Infrastructure.Context;
+using Shared.Application.Context;
 
 namespace Shared.Infrastructure.Data
 {

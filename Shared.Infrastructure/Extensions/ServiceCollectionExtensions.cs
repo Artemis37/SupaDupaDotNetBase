@@ -1,7 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Application.Interfaces;
-using Shared.Infrastructure.Context;
+using Shared.Application.Context;
 using Shared.Infrastructure.Data;
+using Shared.Infrastructure.Context;
 
 namespace Shared.Infrastructure.Extensions
 {

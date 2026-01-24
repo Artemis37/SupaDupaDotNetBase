@@ -1,6 +1,4 @@
-using Shared.Infrastructure.Context;
-
-namespace Shared.Infrastructure.Context
+namespace Shared.Application.Context
 {
     public interface IPersonContextProvider
     {

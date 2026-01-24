@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Shared.Application.Interfaces;
-using Shared.Infrastructure.Context;
+using Shared.Application.Context;
 using Vehicle.Domain.Models;
 using Vehicle.Infrastructure.Data.EntityConfigurations;
 

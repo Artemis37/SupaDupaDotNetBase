@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Application.Interfaces;
-using Shared.Infrastructure.Context;
+using Shared.Application.Context;
 
 namespace Shared.Infrastructure.Data
 {
