@@ -35,6 +35,7 @@ namespace Vehicle.Infrastructure.Extensions
         {
             services.AddScoped<IPersonRepository, PersonRepository>();
             services.AddScoped<IVehicleRepository, VehicleRepository>();
+            services.AddScoped<IPersonMasterRepository, PersonMasterRepository>();
 
             return services;
         }

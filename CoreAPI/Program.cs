@@ -1,5 +1,6 @@
 using CoreAPI.Extensions;
 using CoreAPI.Middleware;
+using Vehicle.Application.Extensions;
 using Vehicle.Infrastructure.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,6 +18,9 @@ builder.Services.AddPersistence(builder.Configuration);
 
 // Register repositories
 builder.Services.AddRepositories();
+
+// Register application services (AuthService, etc.)
+builder.Services.AddApplicationServices(builder.Configuration);
 
 var app = builder.Build();
 
@@ -36,7 +40,10 @@ app.UseHttpsRedirection();
 // Enable routing so endpoint metadata is available
 app.UseRouting();
 
-// Register PersonContextMiddleware after routing but before authorization
+// Register AuthenticationMiddleware first - validates JWT token
+app.UseMiddleware<AuthenticationMiddleware>();
+
+// Register PersonContextMiddleware after authentication
 app.UseMiddleware<PersonContextMiddleware>();
 
 app.UseAuthorization();
