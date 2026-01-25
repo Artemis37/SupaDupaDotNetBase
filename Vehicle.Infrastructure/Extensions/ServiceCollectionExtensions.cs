@@ -25,8 +25,7 @@ namespace Vehicle.Infrastructure.Extensions
                 throw new InvalidOperationException("Master connection string is not configured.");
             }
 
-            services.AddDbContext<MasterDbContext>(options =>
-                options.UseSqlServer(masterConnectionString));
+            services.AddDbContext<MasterDbContext>(options => options.UseSqlServer(masterConnectionString));
 
             return services;
         }

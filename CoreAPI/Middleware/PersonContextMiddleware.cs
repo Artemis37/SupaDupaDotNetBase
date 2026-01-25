@@ -1,13 +1,14 @@
 using System.Text;
 using CoreAPI.Attributes;
 using Microsoft.AspNetCore.Http;
+using Shared.Application.Context;
 
 namespace CoreAPI.Middleware
 {
     public class PersonContextMiddleware
     {
         private readonly RequestDelegate _next;
-        private const string PersonIdHeaderName = "personId";
+        private const string PERSON_ID_HEADER_NAME = "personId";
 
         public PersonContextMiddleware(RequestDelegate next)
         {
@@ -16,7 +17,8 @@ namespace CoreAPI.Middleware
 
         public async Task InvokeAsync(
             HttpContext context,
-            PersonContextResolver personContextResolver)
+            PersonContextResolver personContextResolver,
+            PersonContext personContext)
         {
             var endpoint = context.GetEndpoint();
             if (endpoint != null)
@@ -29,7 +31,7 @@ namespace CoreAPI.Middleware
                 }
             }
 
-            if (!context.Request.Headers.TryGetValue(PersonIdHeaderName, out var personIdHeaderValue))
+            if (!context.Request.Headers.TryGetValue(PERSON_ID_HEADER_NAME, out var personIdHeaderValue))
             {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 context.Response.ContentType = "application/json";

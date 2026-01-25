@@ -18,11 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Commands\" />
     <Folder Include="Helpers\" />
     <Folder Include="Automapper\" />
-    <Folder Include="Dtos\" />
-    <Folder Include="Queries\" />
   </ItemGroup>
 
 </Project>

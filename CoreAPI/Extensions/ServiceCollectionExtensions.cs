@@ -15,6 +15,17 @@ namespace CoreAPI.Extensions
                     Version = "v1"
                 });
 
+                // Add JWT Bearer token authentication
+                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Name = "Authorization",
+                    Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\""
+                });
+
                 // Add personId header as a required parameter for all endpoints
                 options.AddSecurityDefinition("personId", new OpenApiSecurityScheme
                 {
@@ -26,6 +37,17 @@ namespace CoreAPI.Extensions
 
                 options.AddSecurityRequirement(new OpenApiSecurityRequirement
                 {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    },
                     {
                         new OpenApiSecurityScheme
                         {

@@ -5,6 +5,9 @@ using Vehicle.Infrastructure.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// TODO: configure logging standard, can be done with Serilog, OpenTelemetry, etc. 
+// Export to other logging databases like Loki
+
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 

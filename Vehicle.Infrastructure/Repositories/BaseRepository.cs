@@ -27,20 +27,17 @@ namespace Vehicle.Infrastructure.Repositories
         public virtual async Task<T> AddAsync(T entity)
         {
             await Context.Set<T>().AddAsync(entity);
-            await _unitOfWork.SaveChangesAsync();
             return entity;
         }
 
         public virtual async Task UpdateAsync(T entity)
         {
             Context.Set<T>().Update(entity);
-            await _unitOfWork.SaveChangesAsync();
         }
 
         public virtual async Task DeleteAsync(T entity)
         {
             Context.Set<T>().Remove(entity);
-            await _unitOfWork.SaveChangesAsync();
         }
 
         public virtual async Task<bool> ExistsAsync(int id)

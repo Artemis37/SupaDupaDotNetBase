@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Shared.Application.Context;
-using Vehicle.Domain.Models;
 using Vehicle.Infrastructure.Data;
 
 namespace CoreAPI.Middleware
@@ -22,7 +21,6 @@ namespace CoreAPI.Middleware
         {
             // TODO: Add caching to resolve person context by personId to avoid querying the master database multiple times
 
-            // Query master database to get PersonMaster
             var personMaster = await _masterDbContext.PersonMasters
                 .FirstOrDefaultAsync(pm => pm.Id == personId);
 
@@ -31,7 +29,6 @@ namespace CoreAPI.Middleware
                 return PersonContextResolutionResult.NotFound("Person not found");
             }
 
-            // Set PersonId and ShardId in context
             var personContext = _personContextProvider.GetContext();
             personContext.PersonId = personId;
             personContext.ShardId = personMaster.ShardId;

@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Shared.Application.Context;
+using Shared.Application.Interfaces;
 using Vehicle.Application.Models;
 using Vehicle.Domain.Interfaces.Repositories;
 using Vehicle.Domain.Interfaces.Services;
@@ -16,6 +17,7 @@ namespace Vehicle.Application.Services
         private readonly IPersonMasterRepository _personMasterRepository;
         private readonly IPersonRepository _personRepository;
         private readonly PersonContext _personContext;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly ShardingSettings _shardingSettings;
         private readonly JwtSettings _jwtSettings;
 
@@ -23,12 +25,14 @@ namespace Vehicle.Application.Services
             IPersonMasterRepository personMasterRepository,
             IPersonRepository personRepository,
             PersonContext personContext,
+            IUnitOfWork unitOfWork,
             IOptions<ShardingSettings> shardingSettings,
             IOptions<JwtSettings> jwtSettings)
         {
             _personMasterRepository = personMasterRepository;
             _personRepository = personRepository;
             _personContext = personContext;
+            _unitOfWork = unitOfWork;
             _shardingSettings = shardingSettings.Value;
             _jwtSettings = jwtSettings.Value;
             
@@ -123,6 +127,7 @@ namespace Vehicle.Application.Services
                 };
 
                 personMaster = await _personMasterRepository.AddAsync(personMaster);
+                await _personMasterRepository.SaveChangesAsync();
 
                 // Set PersonContext to route to the correct shard
                 // This only work because of this is the first time _personRepository.AddAsync is called within the request
@@ -139,6 +144,7 @@ namespace Vehicle.Application.Services
                 };
 
                 await _personRepository.AddAsync(person);
+                await _unitOfWork.SaveChangesAsync();
             }
             catch (Exception)
             {
@@ -148,6 +154,7 @@ namespace Vehicle.Application.Services
                     try
                     {
                         await _personMasterRepository.DeleteAsync(personMaster);
+                        await _personMasterRepository.SaveChangesAsync();
                     }
                     catch
                     {}
@@ -193,7 +200,8 @@ namespace Vehicle.Application.Services
                     return false;
                 }
 
-                var subClaim = principal.FindFirst(JwtRegisteredClaimNames.Sub);
+                // .NET automatically maps "sub" claim to ClaimTypes.NameIdentifier during validation
+                var subClaim = principal.FindFirst(ClaimTypes.NameIdentifier) ?? principal.FindFirst(JwtRegisteredClaimNames.Sub);
                 if (subClaim == null || !int.TryParse(subClaim.Value, out userId))
                 {
                     return false;
