@@ -7,17 +7,13 @@ namespace CoreAPI.Middleware
     public class PersonContextResolver
     {
         private readonly MasterDbContext _masterDbContext;
-        private readonly IPersonContextProvider _personContextProvider;
 
-        public PersonContextResolver(
-            MasterDbContext masterDbContext,
-            IPersonContextProvider personContextProvider)
+        public PersonContextResolver(MasterDbContext masterDbContext)
         {
             _masterDbContext = masterDbContext;
-            _personContextProvider = personContextProvider;
         }
 
-        public async Task<PersonContextResolutionResult> ResolvePersonContextAsync(int personId)
+        public async Task<PersonContext?> ResolvePersonContextAsync(int personId)
         {
             // TODO: Add caching to resolve person context by personId to avoid querying the master database multiple times
 
@@ -26,16 +22,16 @@ namespace CoreAPI.Middleware
 
             if (personMaster == null)
             {
-                return PersonContextResolutionResult.NotFound("Person not found");
+                return null;
             }
 
-            _personContextProvider.Current = new PersonContext
+            var personContext = new PersonContext
             {
                 PersonId = personId,
                 ShardId = personMaster.ShardId
             };
 
-            return PersonContextResolutionResult.Success();
+            return personContext;
         }
     }
 

@@ -4,13 +4,16 @@ namespace Shared.Infrastructure.Context
 {
     public class PersonContextProvider : IPersonContextProvider
     {
-        // TODO: convert to AsyncLocal later
-        private static PersonContext? _current = new();
+        private static AsyncLocal<PersonContext?> _current = new();
 
-        public PersonContext? Current
+        public PersonContext? GetPersonContext()
         {
-            get => _current;
-            set => _current = value;
+            return _current.Value;
+        }
+
+        public void SetPersonContext(PersonContext? context)
+        {
+            _current.Value = context;
         }
     }
 }

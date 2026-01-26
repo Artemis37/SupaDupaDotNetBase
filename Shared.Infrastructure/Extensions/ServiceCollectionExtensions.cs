@@ -14,8 +14,13 @@ namespace Shared.Infrastructure.Extensions
             services.AddScoped<PersonContext>(sp =>
             {
                 var accessor = sp.GetRequiredService<IPersonContextProvider>();
-                accessor.Current ??= new PersonContext();
-                return accessor.Current;
+                var context = accessor.GetPersonContext();
+                if (context == null)
+                {
+                    context = new PersonContext();
+                    accessor.SetPersonContext(context);
+                }
+                return context;
             });
             services.AddScoped<IDbContextFactory, DbContextFactory>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();

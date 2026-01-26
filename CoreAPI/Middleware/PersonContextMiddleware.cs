@@ -1,5 +1,7 @@
 using CoreAPI.Attributes;
 using System.Text;
+using Microsoft.Extensions.DependencyInjection;
+using Shared.Application.Context;
 
 namespace CoreAPI.Middleware
 {
@@ -44,15 +46,18 @@ namespace CoreAPI.Middleware
                 return;
             }
 
-            var resolutionResult = await personContextResolver.ResolvePersonContextAsync(personId);
+            var personContext = await personContextResolver.ResolvePersonContextAsync(personId);
 
-            if (!resolutionResult.IsSuccess)
+            if (personContext == null)
             {
                 context.Response.StatusCode = StatusCodes.Status404NotFound;
                 context.Response.ContentType = "application/json";
-                await context.Response.WriteAsync($"{{\"error\": \"{resolutionResult.ErrorMessage}\"}}", Encoding.UTF8);
+                await context.Response.WriteAsync("{\"error\": \"Person not found\"}", Encoding.UTF8);
                 return;
             }
+
+            var personContextProvider = context.RequestServices.GetRequiredService<IPersonContextProvider>();
+            personContextProvider.SetPersonContext(personContext);
 
             await _next(context);
         }

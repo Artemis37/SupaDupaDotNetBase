@@ -132,11 +132,11 @@ namespace Vehicle.Application.Services
                 // Set PersonContext to route to the correct shard
                 // This only work because of this is the first time _personRepository.AddAsync is called within the request
                 // So new ShardingDbContext is created, might need a better solution to switch sharding in run time
-                _personContextProvider.Current = new PersonContext
+                _personContextProvider.SetPersonContext(new PersonContext
                 {
                     PersonId = personMaster.Id,
                     ShardId = personMaster.ShardId
-                };
+                });
 
                 var person = new Person
                 {
