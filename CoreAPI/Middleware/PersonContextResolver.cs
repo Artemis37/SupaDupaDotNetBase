@@ -13,12 +13,12 @@ namespace CoreAPI.Middleware
             _masterDbContext = masterDbContext;
         }
 
-        public async Task<PersonContext?> ResolvePersonContextAsync(int personId)
+        public async Task<PersonContext?> ResolvePersonContextAsync(Guid personSyncId)
         {
-            // TODO: Add caching to resolve person context by personId to avoid querying the master database multiple times
+            // TODO: Add caching to resolve person context by personSyncId to avoid querying the master database multiple times
 
             var personMaster = await _masterDbContext.PersonMasters
-                .FirstOrDefaultAsync(pm => pm.Id == personId);
+                .FirstOrDefaultAsync(pm => pm.PersonSyncId == personSyncId);
 
             if (personMaster == null)
             {
@@ -27,7 +27,7 @@ namespace CoreAPI.Middleware
 
             var personContext = new PersonContext
             {
-                PersonId = personId,
+                PersonId = null, // Will be set later from shard DB
                 ShardId = personMaster.ShardId
             };
 

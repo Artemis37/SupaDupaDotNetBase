@@ -14,12 +14,10 @@ public class GetAllVehiclesQuery : IQuery<List<VehicleDto>>
 public class GetAllVehiclesQueryHandler : IQueryHandler<GetAllVehiclesQuery, List<VehicleDto>>
 {
     private readonly IVehicleRepository _vehicleRepository;
-    private readonly PersonContext _personContext;
 
-    public GetAllVehiclesQueryHandler(IVehicleRepository vehicleRepository, PersonContext personContext)
+    public GetAllVehiclesQueryHandler(IVehicleRepository vehicleRepository)
     {
         _vehicleRepository = vehicleRepository;
-        _personContext = personContext;
     }
 
     public async Task<List<VehicleDto>> Handle(GetAllVehiclesQuery query)
@@ -28,8 +26,9 @@ public class GetAllVehiclesQueryHandler : IQueryHandler<GetAllVehiclesQuery, Lis
         var vehicles = await _vehicleRepository.GetAllAsync();
         
         // Filter by PersonId from context
+        // TODO: PersonId is already filtered in DbContext so where condition can be removed
         var filteredVehicles = vehicles
-            .Where(v => v.PersonId == _personContext.PersonId && !v.IsDeleted)
+            .Where(v => v.PersonId == PersonContextProvider.Current?.PersonId && !v.IsDeleted)
             .Select(v => new VehicleDto
             {
                 Id = v.Id,

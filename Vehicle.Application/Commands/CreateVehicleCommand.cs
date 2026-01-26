@@ -20,16 +20,13 @@ public class CreateVehicleCommand : ICommand
 
 [LoggingCommand]
 [Validation]
-[Transaction]
 public class CreateVehicleCommandHandler : ICommandHandler<CreateVehicleCommand>
 {
     private readonly IVehicleRepository _vehicleRepository;
-    private readonly PersonContext _personContext;
 
-    public CreateVehicleCommandHandler(IVehicleRepository vehicleRepository, PersonContext personContext)
+    public CreateVehicleCommandHandler(IVehicleRepository vehicleRepository)
     {
         _vehicleRepository = vehicleRepository;
-        _personContext = personContext;
     }
 
     public async Task<Result> Handle(CreateVehicleCommand command)
@@ -37,15 +34,16 @@ public class CreateVehicleCommandHandler : ICommandHandler<CreateVehicleCommand>
         // Create vehicle
         var vehicle = new Domain.Models.Vehicle
         {
-            PersonId = _personContext.PersonId ?? 0,
+            PersonId = PersonContextProvider.Current?.PersonId ?? 0,
             Type = command.Type,
             LicensePlate = command.LicensePlate,
-            CreatedBy = _personContext.PersonId,
+            CreatedBy = PersonContextProvider.Current?.PersonId,
             CreatedAt = DateTime.UtcNow,
             IsDeleted = false
         };
 
         var createdVehicle = await _vehicleRepository.AddAsync(vehicle);
+        await _vehicleRepository.SaveChangesAsync();
         
         // Return success with vehicle ID
         return Result.Ok();

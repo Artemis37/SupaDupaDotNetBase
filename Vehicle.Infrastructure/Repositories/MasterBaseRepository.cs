@@ -43,5 +43,10 @@ namespace Vehicle.Infrastructure.Repositories
             var entity = await _context.Set<T>().FindAsync(id);
             return entity != null;
         }
+
+        public virtual async Task<int> SaveChangesAsync()
+        {
+            return await _context.SaveChangesAsync();
+        }
     }
 }

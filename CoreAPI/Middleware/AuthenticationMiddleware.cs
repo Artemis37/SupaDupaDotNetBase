@@ -1,6 +1,8 @@
 using System.Text;
 using CoreAPI.Attributes;
-using Vehicle.Domain.Interfaces.Services;
+using Microsoft.Extensions.Options;
+using Vehicle.Application.Helpers;
+using Vehicle.Application.Models;
 
 namespace CoreAPI.Middleware
 {
@@ -17,7 +19,7 @@ namespace CoreAPI.Middleware
 
         public async Task InvokeAsync(
             HttpContext context,
-            IAuthService authService)
+            IOptions<JwtSettings> jwtSettings)
         {
             var endpoint = context.GetEndpoint();
             if (endpoint != null)
@@ -58,7 +60,7 @@ namespace CoreAPI.Middleware
                 return;
             }
 
-            if (!authService.ValidateToken(token, out int userId))
+            if (!JwtTokenHelper.ValidateToken(token, jwtSettings.Value, out int userId))
             {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 context.Response.ContentType = "application/json";

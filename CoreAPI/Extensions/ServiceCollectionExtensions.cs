@@ -27,11 +27,11 @@ namespace CoreAPI.Extensions
                 });
 
                 // Add personId header as a required parameter for all endpoints
-                options.AddSecurityDefinition("personId", new OpenApiSecurityScheme
+                options.AddSecurityDefinition("personSyncId", new OpenApiSecurityScheme
                 {
                     Type = SecuritySchemeType.ApiKey,
                     In = ParameterLocation.Header,
-                    Name = "personId",
+                    Name = "personSyncId",
                     Description = "Person ID header (required for all endpoints except those marked with [SkipPersonIdCheck])"
                 });
 
@@ -54,7 +54,7 @@ namespace CoreAPI.Extensions
                             Reference = new OpenApiReference
                             {
                                 Type = ReferenceType.SecurityScheme,
-                                Id = "personId"
+                                Id = "personSyncId"
                             }
                         },
                         Array.Empty<string>()

@@ -2,13 +2,14 @@ using CoreAPI.Attributes;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Application.Context;
+using Vehicle.Domain.Interfaces.Repositories;
 
 namespace CoreAPI.Middleware
 {
     public class PersonContextMiddleware
     {
         private readonly RequestDelegate _next;
-        private const string PERSON_ID_HEADER_NAME = "personId";
+        private const string PERSON_SYNC_ID_HEADER_NAME = "personSyncId";
 
         public PersonContextMiddleware(RequestDelegate next)
         {
@@ -17,7 +18,8 @@ namespace CoreAPI.Middleware
 
         public async Task InvokeAsync(
             HttpContext context,
-            PersonContextResolver personContextResolver)
+            PersonContextResolver personContextResolver,
+            IServiceProvider serviceProvider)
         {
             var endpoint = context.GetEndpoint();
             if (endpoint != null)
@@ -30,23 +32,23 @@ namespace CoreAPI.Middleware
                 }
             }
 
-            if (!context.Request.Headers.TryGetValue(PERSON_ID_HEADER_NAME, out var personIdHeaderValue))
+            if (!context.Request.Headers.TryGetValue(PERSON_SYNC_ID_HEADER_NAME, out var personSyncIdHeaderValue))
             {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 context.Response.ContentType = "application/json";
-                await context.Response.WriteAsync("{\"error\": \"personId header is required\"}", Encoding.UTF8);
+                await context.Response.WriteAsync("{\"error\": \"personSyncId header is required\"}", Encoding.UTF8);
                 return;
             }
 
-            if (!int.TryParse(personIdHeaderValue.ToString(), out var personId))
+            if (!Guid.TryParse(personSyncIdHeaderValue.ToString(), out var personSyncId))
             {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 context.Response.ContentType = "application/json";
-                await context.Response.WriteAsync("{\"error\": \"personId must be a valid integer\"}", Encoding.UTF8);
+                await context.Response.WriteAsync("{\"error\": \"personSyncId must be a valid GUID\"}", Encoding.UTF8);
                 return;
             }
 
-            var personContext = await personContextResolver.ResolvePersonContextAsync(personId);
+            var personContext = await personContextResolver.ResolvePersonContextAsync(personSyncId);
 
             if (personContext == null)
             {
@@ -56,8 +58,21 @@ namespace CoreAPI.Middleware
                 return;
             }
 
-            var personContextProvider = context.RequestServices.GetRequiredService<IPersonContextProvider>();
-            personContextProvider.SetPersonContext(personContext);
+            PersonContextProvider.SetCurrent(personContext);
+
+            var personRepository = serviceProvider.GetRequiredService<IPersonRepository>();
+            var person = await personRepository.GetByPersonSyncIdAsync(personSyncId);
+
+            if (person == null)
+            {
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsync("{\"error\": \"Person not found in shard database\"}", Encoding.UTF8);
+                return;
+            }
+
+            personContext.PersonId = person.Id;
+            PersonContextProvider.SetCurrent(personContext);
 
             await _next(context);
         }

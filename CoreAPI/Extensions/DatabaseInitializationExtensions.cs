@@ -49,10 +49,10 @@ namespace CoreAPI.Extensions
                                 maxRetryDelay: TimeSpan.FromSeconds(30),
                                 errorNumbersToAdd: null));
 
-                        // Create a dummy PersonContext for migration
-                        var personContext = new PersonContext();
-
-                        using var shardContext = new ShardingDbContext(optionsBuilder.Options, personContext);
+                        // Set PersonContext to null for migration (no user context during migrations)
+                        PersonContextProvider.SetCurrent(new PersonContext { PersonId = null, ShardId = null });
+                        
+                        using var shardContext = new ShardingDbContext(optionsBuilder.Options);
                         await shardContext.Database.MigrateAsync();
 
                         logger.LogInformation("Shard database {ShardId} migration completed successfully.", shardId);

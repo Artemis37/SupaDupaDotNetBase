@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Shared.Application.Interfaces;
 using Vehicle.Infrastructure.Data;
 
@@ -6,12 +7,22 @@ namespace Vehicle.Infrastructure.Repositories
 {
     public class BaseRepository<T> where T : class
     {
-        protected readonly IUnitOfWork _unitOfWork;
-        protected ShardingDbContext Context => _unitOfWork.GetDbContext<ShardingDbContext>();
+        protected ShardingDbContext Context;
+        private readonly IServiceProvider _serviceProvider;
 
-        public BaseRepository(IUnitOfWork unitOfWork)
+        public BaseRepository(ShardingDbContext context, IServiceProvider serviceProvider)
         {
-            _unitOfWork = unitOfWork;
+            Context = context;
+            _serviceProvider = serviceProvider;
+        }
+
+        /// <summary>
+        /// Reloads the ShardingDbContext from DI after PersonContext has been set
+        /// </summary>
+        public void ReloadShardingDbContext()
+        {
+            var provider = _serviceProvider.GetRequiredService<IShardingDbContextProvider<ShardingDbContext>>();
+            Context = provider.GetDbContext();
         }
 
         public virtual async Task<T?> GetByIdAsync(int id)
@@ -44,6 +55,11 @@ namespace Vehicle.Infrastructure.Repositories
         {
             var entity = await Context.Set<T>().FindAsync(id);
             return entity != null;
+        }
+
+        public virtual async Task<int> SaveChangesAsync()
+        {
+            return await Context.SaveChangesAsync();
         }
     }
 }

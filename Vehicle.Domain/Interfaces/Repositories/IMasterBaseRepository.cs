@@ -44,5 +44,11 @@ namespace Vehicle.Domain.Interfaces.Repositories
         /// <param name="id">Entity ID</param>
         /// <returns>True if exists, false otherwise</returns>
         Task<bool> ExistsAsync(int id);
+
+        /// <summary>
+        /// Saves changes to the database
+        /// </summary>
+        /// <returns>Number of state entries written to the database</returns>
+        Task<int> SaveChangesAsync();
     }
 }

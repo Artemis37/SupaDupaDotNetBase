@@ -3,37 +3,27 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Shared.Application.Context;
-using Shared.Application.Interfaces;
+using Shared.Application.Infrastructure;
 using Vehicle.Application.Models;
+using Vehicle.Domain.Dtos;
 using Vehicle.Domain.Interfaces.Repositories;
 using Vehicle.Domain.Interfaces.Services;
-using Vehicle.Domain.Models;
 
 namespace Vehicle.Application.Services
 {
     public class AuthService : IAuthService
     {
         private readonly IPersonMasterRepository _personMasterRepository;
-        private readonly IPersonRepository _personRepository;
-        private readonly IPersonContextProvider _personContextProvider;
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly ShardingSettings _shardingSettings;
+        private readonly Messages _messages;
         private readonly JwtSettings _jwtSettings;
 
         public AuthService(
             IPersonMasterRepository personMasterRepository,
-            IPersonRepository personRepository,
-            IPersonContextProvider personContextProvider,
-            IUnitOfWork unitOfWork,
-            IOptions<ShardingSettings> shardingSettings,
+            Messages messages,
             IOptions<JwtSettings> jwtSettings)
         {
             _personMasterRepository = personMasterRepository;
-            _personRepository = personRepository;
-            _personContextProvider = personContextProvider;
-            _unitOfWork = unitOfWork;
-            _shardingSettings = shardingSettings.Value;
+            _messages = messages;
             _jwtSettings = jwtSettings.Value;
             
             if (string.IsNullOrEmpty(_jwtSettings.SecretKey))
@@ -42,7 +32,7 @@ namespace Vehicle.Application.Services
             }
         }
 
-        public async Task<string?> AuthenticateAsync(string username, string password)
+        public async Task<LoginResponse?> AuthenticateAsync(string username, string password)
         {
             var user = await _personMasterRepository.GetByUsernameAsync(username);
             if (user == null)
@@ -75,175 +65,13 @@ namespace Vehicle.Application.Services
             };
 
             var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
-        }
+            var tokenString = tokenHandler.WriteToken(token);
 
-        public async Task<string?> RegisterAsync(string username, string password)
-        {
-            var existingUser = await _personMasterRepository.GetByUsernameAsync(username);
-            if (existingUser != null)
+            return new LoginResponse
             {
-                return null;
-            }
-
-            var hashedPassword = BCrypt.Net.BCrypt.HashPassword(password);
-
-            int shardId;
-            if (_shardingSettings.HotShard.HasValue && 
-                _shardingSettings.HotShard.Value >= 1 && 
-                _shardingSettings.HotShard.Value <= _shardingSettings.TotalShards)
-            {
-                shardId = _shardingSettings.HotShard.Value;
-            }
-            else
-            {
-                shardId = Random.Shared.Next(1, _shardingSettings.TotalShards + 1);
-            }
-
-            // TODO: Replace direct database call with message broker for eventual consistency
-            // Potential optimizations:
-            // 1. SAGA Pattern: Implement compensating transactions to rollback Master DB 
-            //    if Sharding DB creation fails (e.g., delete PersonMaster if Person creation fails)
-            // 2. Outbox Pattern with Idempotency: Store "PersonCreated" event in Master DB outbox table,
-            //    process via background worker to create Person in Sharding DB, ensuring at-least-once
-            //    delivery with idempotent handlers to prevent duplicate Person records
-            // 3. Event Sourcing: Store registration as immutable event, rebuild state by replaying events
-            // 4. Two-Phase Message: Publish "PersonCreating" (prepare), then "PersonCreated" (commit) 
-            //    or "PersonCreationFailed" (abort) events to message broker
-            // 5. Async Creation: Return success immediately after Master DB write, create Sharding DB 
-            //    record asynchronously via message queue (eventual consistency trade-off)
-            
-            PersonMaster? personMaster = null;
-            
-            try
-            {
-                // Create PersonMaster in Master DB
-                personMaster = new PersonMaster
-                {
-                    Username = username,
-                    Password = hashedPassword,
-                    ShardId = shardId,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                personMaster = await _personMasterRepository.AddAsync(personMaster);
-                await _personMasterRepository.SaveChangesAsync();
-
-                // Set PersonContext to route to the correct shard
-                // This only work because of this is the first time _personRepository.AddAsync is called within the request
-                // So new ShardingDbContext is created, might need a better solution to switch sharding in run time
-                _personContextProvider.SetPersonContext(new PersonContext
-                {
-                    PersonId = personMaster.Id,
-                    ShardId = personMaster.ShardId
-                });
-
-                var person = new Person
-                {
-                    Name = username,
-                    CreatedBy = personMaster.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    IsDeleted = false
-                };
-
-                await _personRepository.AddAsync(person);
-                await _unitOfWork.SaveChangesAsync();
-            }
-            catch (Exception)
-            {
-                // Compensating transaction: If Person creation fails, delete PersonMaster
-                if (personMaster != null && personMaster.Id > 0)
-                {
-                    try
-                    {
-                        await _personMasterRepository.DeleteAsync(personMaster);
-                        await _personMasterRepository.SaveChangesAsync();
-                    }
-                    catch
-                    {}
-                }
-                throw;
-            }
-
-            var user = await _personMasterRepository.GetByUsernameAsync(username);
-            if (user == null)
-            {
-                return null;
-            }
-
-            return GenerateJwtToken(user.Id);
-        }
-
-        public bool ValidateToken(string token, out int userId)
-        {
-            userId = 0;
-
-            try
-            {
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var key = Encoding.UTF8.GetBytes(_jwtSettings.SecretKey);
-
-                var validationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateIssuer = true,
-                    ValidIssuer = _jwtSettings.Issuer,
-                    ValidateAudience = true,
-                    ValidAudience = _jwtSettings.Audience,
-                    ValidateLifetime = true,
-                    ClockSkew = TimeSpan.Zero
-                };
-
-                var principal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
-
-                if (validatedToken is not JwtSecurityToken jwtToken ||
-                    !jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    return false;
-                }
-
-                // .NET automatically maps "sub" claim to ClaimTypes.NameIdentifier during validation
-                var subClaim = principal.FindFirst(ClaimTypes.NameIdentifier) ?? principal.FindFirst(JwtRegisteredClaimNames.Sub);
-                if (subClaim == null || !int.TryParse(subClaim.Value, out userId))
-                {
-                    return false;
-                }
-
-                return true;
-            }
-            catch (SecurityTokenExpiredException)
-            {
-                return false;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-        }
-
-        private string GenerateJwtToken(int userId)
-        {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_jwtSettings.SecretKey);
-            
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
-                    new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
-                }),
-                Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes),
-                Issuer = _jwtSettings.Issuer,
-                Audience = _jwtSettings.Audience,
-                SigningCredentials = new SigningCredentials(
-                    new SymmetricSecurityKey(key),
-                    SecurityAlgorithms.HmacSha256Signature)
+                Token = tokenString,
+                PersonSyncId = user.PersonSyncId
             };
-
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
         }
     }
 }

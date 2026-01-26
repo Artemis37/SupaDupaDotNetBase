@@ -25,9 +25,6 @@ public class HandlersRegistration : HandlersRegistrationBase
         if (type == typeof(ValidationAttribute))
             return typeof(ValidationDecorator<>);
         
-        if (type == typeof(TransactionAttribute))
-            return typeof(TransactionDecorator<>);
-        
         if (type == typeof(AuditAttribute))
             return typeof(AuditDecorator<>);
 

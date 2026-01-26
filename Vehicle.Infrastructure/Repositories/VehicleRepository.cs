@@ -1,13 +1,14 @@
-using Shared.Application.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
 using Vehicle.Domain.Interfaces.Repositories;
 using Vehicle.Domain.Models;
+using Vehicle.Infrastructure.Data;
 
 namespace Vehicle.Infrastructure.Repositories
 {
     public class VehicleRepository : BaseRepository<Domain.Models.Vehicle>, IVehicleRepository
     {
-        public VehicleRepository(IUnitOfWork unitOfWork)
-            : base(unitOfWork)
+        public VehicleRepository(ShardingDbContext context, IServiceProvider serviceProvider)
+            : base(context, serviceProvider)
         {
         }
     }

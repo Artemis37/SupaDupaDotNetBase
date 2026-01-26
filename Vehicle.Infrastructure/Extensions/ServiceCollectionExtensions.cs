@@ -18,6 +18,24 @@ namespace Vehicle.Infrastructure.Extensions
             services.AddSharedInfrastructure();
 
             services.AddScoped<IShardingDbContextProvider<ShardingDbContext>, Shared.Infrastructure.Data.ShardingDbContextProvider<ShardingDbContext>>();
+            services.AddScoped<ShardingDbContext>(sp =>
+            {
+                var provider = sp.GetRequiredService<IShardingDbContextProvider<ShardingDbContext>>();
+                try
+                {
+                    return provider.GetDbContext();
+                }
+                catch (InvalidOperationException)
+                {
+                    // Return null when PersonContext is not set (e.g., during person creation)
+                    return null!;
+                }
+            });
+            services.AddScoped<IUnitOfWork>(sp =>
+            {
+                var provider = sp.GetRequiredService<IShardingDbContextProvider<ShardingDbContext>>();
+                return provider.GetDbContext();
+            });
 
             var masterConnectionString = configuration.GetConnectionString("Master");
             if (string.IsNullOrEmpty(masterConnectionString))
