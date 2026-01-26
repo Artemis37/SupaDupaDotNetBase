@@ -15,6 +15,7 @@ builder.Services.AddPersistence();
 builder.Services.AddPersistence(builder.Configuration);
 builder.Services.AddRepositories();
 builder.Services.AddApplicationServices(builder.Configuration);
+builder.Services.AddSecurity(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 
@@ -31,12 +32,21 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+// Security middleware (order matters!)
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts(); // HSTS should only be used in production
+}
 app.UseHttpsRedirection();
+app.UseCors();
+app.UseRateLimiter();
+app.UseMiddleware<SecurityHeadersMiddleware>();
+
 app.UseRouting();
 app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseMiddleware<PersonContextMiddleware>();
 app.UseMiddleware<AuthenticationMiddleware>();
 app.UseAuthorization();
-app.MapControllers();
+app.MapControllers().RequireRateLimiting("ApiPolicy");
 
 app.Run();

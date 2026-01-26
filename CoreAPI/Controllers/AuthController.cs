@@ -1,5 +1,6 @@
 using CoreAPI.Attributes;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Vehicle.Application.Constants;
 using Vehicle.Application.Dtos;
 using Vehicle.Application.Models;
@@ -22,6 +23,7 @@ namespace CoreAPI.Controllers
         }
 
         [HttpPost("login")]
+        [EnableRateLimiting("AuthPolicy")]
         [ProducesResponseType(typeof(ApiResponse<LoginResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
