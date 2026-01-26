@@ -8,28 +8,30 @@ namespace Shared.Infrastructure.Data
         where TDbContext : DbContext
     {
         private readonly IDbContextFactory _dbContextFactory;
-        private readonly IPersonContextProvider _personContextProvider;
+        private readonly PersonContext _personContext;
 
         public ShardingDbContextProvider(
             IDbContextFactory dbContextFactory,
-            IPersonContextProvider personContextProvider)
+            PersonContext personContext)
         {
             _dbContextFactory = dbContextFactory;
-            _personContextProvider = personContextProvider;
+            _personContext = personContext;
         }
 
         public TDbContext GetDbContext()
         {
-            var personContext = _personContextProvider.GetContext();
-            
-            if (personContext.ShardId == null)
+            if (_personContext.ShardId == null)
             {
                 throw new InvalidOperationException("ShardId is not set in PersonContext. Ensure PersonContextMiddleware is registered and personId header is provided.");
             }
 
-            var connectionString = _dbContextFactory.CreateConnectionString(personContext.ShardId.Value);
+            var connectionString = _dbContextFactory.CreateConnectionString(_personContext.ShardId.Value);
             var optionsBuilder = new DbContextOptionsBuilder<TDbContext>();
-            optionsBuilder.UseSqlServer(connectionString);
+            optionsBuilder.UseSqlServer(connectionString, sqlServerOptions => 
+                sqlServerOptions.EnableRetryOnFailure(
+                    maxRetryCount: 5,
+                    maxRetryDelay: TimeSpan.FromSeconds(30),
+                    errorNumbersToAdd: null));
             
             if (typeof(TDbContext).Name == "ShardingDbContext")
             {
@@ -37,7 +39,7 @@ namespace Shared.Infrastructure.Data
                     new[] { typeof(DbContextOptions<TDbContext>), typeof(PersonContext) });
                 if (constructor != null)
                 {
-                    return (TDbContext)constructor.Invoke(new object[] { optionsBuilder.Options, personContext });
+                    return (TDbContext)constructor.Invoke(new object[] { optionsBuilder.Options, _personContext });
                 }
             }
             

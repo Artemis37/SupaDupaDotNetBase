@@ -16,7 +16,7 @@ namespace Vehicle.Application.Services
     {
         private readonly IPersonMasterRepository _personMasterRepository;
         private readonly IPersonRepository _personRepository;
-        private readonly PersonContext _personContext;
+        private readonly IPersonContextProvider _personContextProvider;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ShardingSettings _shardingSettings;
         private readonly JwtSettings _jwtSettings;
@@ -24,14 +24,14 @@ namespace Vehicle.Application.Services
         public AuthService(
             IPersonMasterRepository personMasterRepository,
             IPersonRepository personRepository,
-            PersonContext personContext,
+            IPersonContextProvider personContextProvider,
             IUnitOfWork unitOfWork,
             IOptions<ShardingSettings> shardingSettings,
             IOptions<JwtSettings> jwtSettings)
         {
             _personMasterRepository = personMasterRepository;
             _personRepository = personRepository;
-            _personContext = personContext;
+            _personContextProvider = personContextProvider;
             _unitOfWork = unitOfWork;
             _shardingSettings = shardingSettings.Value;
             _jwtSettings = jwtSettings.Value;
@@ -132,8 +132,11 @@ namespace Vehicle.Application.Services
                 // Set PersonContext to route to the correct shard
                 // This only work because of this is the first time _personRepository.AddAsync is called within the request
                 // So new ShardingDbContext is created, might need a better solution to switch sharding in run time
-                _personContext.PersonId = personMaster.Id;
-                _personContext.ShardId = personMaster.ShardId;
+                _personContextProvider.Current = new PersonContext
+                {
+                    PersonId = personMaster.Id,
+                    ShardId = personMaster.ShardId
+                };
 
                 var person = new Person
                 {

@@ -34,8 +34,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseMiddleware<GlobalExceptionMiddleware>();
-app.UseMiddleware<AuthenticationMiddleware>();
 app.UseMiddleware<PersonContextMiddleware>();
+app.UseMiddleware<AuthenticationMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 

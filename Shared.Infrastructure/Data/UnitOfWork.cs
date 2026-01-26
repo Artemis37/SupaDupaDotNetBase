@@ -9,13 +9,13 @@ namespace Shared.Infrastructure.Data
     public class UnitOfWork : IUnitOfWork
     {
         private readonly Dictionary<Type, DbContext> _dbContexts = new();
-        private readonly IPersonContextProvider _personContextProvider;
+        private readonly PersonContext _personContext;
         private readonly IServiceProvider _serviceProvider;
         private IDbContextTransaction? _currentTransaction;
 
-        public UnitOfWork(IPersonContextProvider personContextProvider, IServiceProvider serviceProvider)
+        public UnitOfWork(PersonContext personContext, IServiceProvider serviceProvider)
         {
-            _personContextProvider = personContextProvider;
+            _personContext = personContext;
             _serviceProvider = serviceProvider;
         }
 
@@ -39,7 +39,7 @@ namespace Shared.Infrastructure.Data
 
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            var personId = _personContextProvider.GetContext().PersonId;
+            var personId = _personContext.PersonId;
             var now = DateTime.UtcNow;
             var totalChanges = 0;
 

@@ -10,8 +10,13 @@ namespace Shared.Infrastructure.Extensions
     {
         public static IServiceCollection AddSharedInfrastructure(this IServiceCollection services)
         {
-            services.AddScoped<PersonContext>();
             services.AddScoped<IPersonContextProvider, PersonContextProvider>();
+            services.AddScoped<PersonContext>(sp =>
+            {
+                var accessor = sp.GetRequiredService<IPersonContextProvider>();
+                accessor.Current ??= new PersonContext();
+                return accessor.Current;
+            });
             services.AddScoped<IDbContextFactory, DbContextFactory>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 

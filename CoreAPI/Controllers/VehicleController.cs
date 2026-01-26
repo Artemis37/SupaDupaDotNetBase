@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Shared.Application.Context;
 using Shared.Application.Infrastructure;
 using Vehicle.Application.Commands;
 using Vehicle.Application.Dtos;

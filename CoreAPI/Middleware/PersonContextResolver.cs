@@ -29,9 +29,11 @@ namespace CoreAPI.Middleware
                 return PersonContextResolutionResult.NotFound("Person not found");
             }
 
-            var personContext = _personContextProvider.GetContext();
-            personContext.PersonId = personId;
-            personContext.ShardId = personMaster.ShardId;
+            _personContextProvider.Current = new PersonContext
+            {
+                PersonId = personId,
+                ShardId = personMaster.ShardId
+            };
 
             return PersonContextResolutionResult.Success();
         }

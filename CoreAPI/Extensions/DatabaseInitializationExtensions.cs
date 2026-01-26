@@ -43,7 +43,11 @@ namespace CoreAPI.Extensions
 
                         // Create DbContext for this shard
                         var optionsBuilder = new DbContextOptionsBuilder<ShardingDbContext>();
-                        optionsBuilder.UseSqlServer(shardConnectionString);
+                        optionsBuilder.UseSqlServer(shardConnectionString, sqlServerOptions => 
+                            sqlServerOptions.EnableRetryOnFailure(
+                                maxRetryCount: 5,
+                                maxRetryDelay: TimeSpan.FromSeconds(30),
+                                errorNumbersToAdd: null));
 
                         // Create a dummy PersonContext for migration
                         var personContext = new PersonContext();

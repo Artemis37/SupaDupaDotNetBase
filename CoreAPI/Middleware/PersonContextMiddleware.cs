@@ -1,7 +1,5 @@
-using System.Text;
 using CoreAPI.Attributes;
-using Microsoft.AspNetCore.Http;
-using Shared.Application.Context;
+using System.Text;
 
 namespace CoreAPI.Middleware
 {
@@ -17,8 +15,7 @@ namespace CoreAPI.Middleware
 
         public async Task InvokeAsync(
             HttpContext context,
-            PersonContextResolver personContextResolver,
-            PersonContext personContext)
+            PersonContextResolver personContextResolver)
         {
             var endpoint = context.GetEndpoint();
             if (endpoint != null)
