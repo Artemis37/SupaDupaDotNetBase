@@ -20,6 +20,12 @@ namespace Vehicle.Domain.Interfaces.Repositories
         Task<IEnumerable<T>> GetAllAsync();
 
         /// <summary>
+        /// Gets queryable entities for database-level filtering and pagination
+        /// </summary>
+        /// <returns>Queryable collection of entities</returns>
+        IQueryable<T> GetQueryable();
+
+        /// <summary>
         /// Adds a new entity to the database
         /// </summary>
         /// <param name="entity">Entity to add</param>

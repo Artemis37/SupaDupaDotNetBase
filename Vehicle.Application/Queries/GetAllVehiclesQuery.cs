@@ -1,17 +1,21 @@
 using Shared.Application.Context;
 using Shared.Application.Interfaces;
+using Vehicle.Application.Converters;
 using Vehicle.Application.Decorators;
 using Vehicle.Application.Dtos;
 using Vehicle.Domain.Interfaces.Repositories;
 
 namespace Vehicle.Application.Queries;
 
-public class GetAllVehiclesQuery : IQuery<List<VehicleDto>>
+public class GetAllVehiclesQuery : IQuery<PagedResult<VehicleDto>>
 {
+    public string? SearchText { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
 }
 
 [LoggingQuery]
-public class GetAllVehiclesQueryHandler : IQueryHandler<GetAllVehiclesQuery, List<VehicleDto>>
+public class GetAllVehiclesQueryHandler : IQueryHandler<GetAllVehiclesQuery, PagedResult<VehicleDto>>
 {
     private readonly IVehicleRepository _vehicleRepository;
 
@@ -20,25 +24,21 @@ public class GetAllVehiclesQueryHandler : IQueryHandler<GetAllVehiclesQuery, Lis
         _vehicleRepository = vehicleRepository;
     }
 
-    public async Task<List<VehicleDto>> Handle(GetAllVehiclesQuery query)
+    public async Task<PagedResult<VehicleDto>> Handle(GetAllVehiclesQuery query)
     {
-        // Get all vehicles for current person
-        var vehicles = await _vehicleRepository.GetAllAsync();
-        
-        // Filter by PersonId from context
-        // TODO: PersonId is already filtered in DbContext so where condition can be removed
-        var filteredVehicles = vehicles
-            .Where(v => v.PersonId == PersonContextProvider.Current?.PersonId && !v.IsDeleted)
-            .Select(v => new VehicleDto
-            {
-                Id = v.Id,
-                PersonId = v.PersonId,
-                Type = v.Type,
-                LicensePlate = v.LicensePlate,
-                CreatedAt = v.CreatedAt
-            })
-            .ToList();
+        var (vehicles, totalCount) = await _vehicleRepository.GetPagedVehiclesAsync(
+            query.SearchText,
+            query.PageNumber,
+            query.PageSize);
 
-        return filteredVehicles;
+        var items = DomainConverter.Map(vehicles);
+
+        return new PagedResult<VehicleDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = query.PageNumber,
+            PageSize = query.PageSize
+        };
     }
 }

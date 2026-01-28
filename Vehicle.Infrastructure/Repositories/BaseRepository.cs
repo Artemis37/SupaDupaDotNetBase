@@ -35,6 +35,11 @@ namespace Vehicle.Infrastructure.Repositories
             return await Context.Set<T>().ToListAsync();
         }
 
+        public virtual IQueryable<T> GetQueryable()
+        {
+            return Context.Set<T>();
+        }
+
         public virtual async Task<T> AddAsync(T entity)
         {
             await Context.Set<T>().AddAsync(entity);
