@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Shared.Application.Context;
 using Shared.Application.Infrastructure;
 using Vehicle.Application.Commands;
+using Vehicle.Application.Constants;
 using Vehicle.Application.Dtos;
 using Vehicle.Application.Models;
 using Vehicle.Application.Queries;
@@ -31,9 +32,13 @@ public class VehicleController : ControllerBase
         var result = await _messages.Dispatch(command);
 
         if (result.IsFailure)
-            return BadRequest(new { error = result.Error });
+        {
+            var errorResponse = ApiResponse<object>.ErrorResponse(result.Error, ErrorCodes.BUSINESS_LOGIC_ERROR);
+            return BadRequest(errorResponse);
+        }
 
-        return Ok(new { message = "Vehicle created successfully" });
+        var successResponse = ApiResponse<object>.SuccessResponse(true, "Vehicle created successfully");
+        return Ok(successResponse);
     }
 
     [HttpGet]
@@ -64,9 +69,13 @@ public class VehicleController : ControllerBase
         var result = await _messages.Dispatch(command);
 
         if (result.IsFailure)
-            return BadRequest(new { error = result.Error });
+        {
+            var errorResponse = ApiResponse<object>.ErrorResponse(result.Error, ErrorCodes.BUSINESS_LOGIC_ERROR);
+            return BadRequest(errorResponse);
+        }
 
-        return Ok(new { message = "Vehicle updated successfully" });
+        var successResponse = ApiResponse<object>.SuccessResponse(true, "Vehicle updated successfully");
+        return Ok(successResponse);
     }
 
     [HttpDelete("{id}")]
@@ -80,8 +89,12 @@ public class VehicleController : ControllerBase
         var result = await _messages.Dispatch(command);
 
         if (result.IsFailure)
-            return BadRequest(new { error = result.Error });
+        {
+            var errorResponse = ApiResponse<object>.ErrorResponse(result.Error, ErrorCodes.BUSINESS_LOGIC_ERROR);
+            return BadRequest(errorResponse);
+        }
 
-        return Ok(new { message = "Vehicle deleted successfully" });
+        var successResponse = ApiResponse<object>.SuccessResponse(true, "Vehicle deleted successfully");
+        return Ok(successResponse);
     }
 }
